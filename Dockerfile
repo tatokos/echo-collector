@@ -31,7 +31,7 @@ RUN groupadd --gid 10001 aiograpi \
     && mkdir -p /data \
     && chown -R aiograpi:aiograpi /app /data
 
-CMD ["uvicorn", "aiograpi_rest.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "aiograpi_rest.main_echo:app", "--host", "0.0.0.0", "--port", "8000"]
 
 FROM app AS test
 
