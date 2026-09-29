@@ -6,6 +6,7 @@ from httpx import ASGITransport, AsyncClient
 
 from aiograpi_rest.dependencies import get_clients
 from aiograpi_rest.main_echo import app
+from aiograpi_rest.routers.echo import _score_post
 
 
 class FakeEchoClient:
@@ -82,7 +83,7 @@ async def test_echo_preview_returns_normalized_posts(storage):
         "permalink": "https://www.instagram.com/p/ABC123/",
         "username": "example",
         "caption": "Test caption",
-        "taken_at": "2026-09-28T12:00:00+00:00",
+        "published_at": "2026-09-28T12:00:00+00:00",
         "media_type": 1,
         "product_type": "feed",
         "thumbnail_url": "https://example.com/thumb.jpg",
@@ -92,3 +93,18 @@ async def test_echo_preview_returns_normalized_posts(storage):
     }
     assert ("user_info_by_username_v1", "example") in storage.client.calls
     assert ("user_medias_paginated_v1", "12345", 5, "") in storage.client.calls
+
+
+def test_score_post_uses_configured_weights():
+    post = {"username": "example", "caption": "A cruise in Naples"}
+    keywords = [
+        {"keyword": "cruise", "weight": 35},
+        {"keyword": "Naples", "weight": 20},
+    ]
+
+    score, relevance, reason = _score_post(post, keywords)
+
+    assert score == 55
+    assert relevance == "MEDIA"
+    assert "cruise" in reason
+    assert "Naples" in reason
