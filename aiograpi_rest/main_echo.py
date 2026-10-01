@@ -3,11 +3,12 @@ from pathlib import Path
 from fastapi.responses import FileResponse
 
 from aiograpi_rest.main import app
-from aiograpi_rest.routers import echo, echo_objectives, echo_scheduler
+from aiograpi_rest.routers import echo, echo_objectives, echo_scheduler, echo_semantic
 
 app.include_router(echo.router)
 app.include_router(echo_objectives.router)
 app.include_router(echo_scheduler.router)
+app.include_router(echo_semantic.router)
 
 
 @app.get("/echo/app", include_in_schema=False)
