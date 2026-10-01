@@ -24,18 +24,6 @@ def _require_automation(key: str | None) -> None:
         raise HTTPException(status_code=401, detail="Invalid Echo automation key")
 
 
-async def _get_client(sessionid: str, clients: ClientStorage):
-    try:
-        return await clients.get(sessionid)
-    except Exception:
-        cl = clients.client()
-        result = await cl.login_by_sessionid(sessionid)
-        if not result:
-            raise RuntimeError("Instagram session could not be restored")
-        clients.set(cl)
-        return cl
-
-
 async def _scan_one(username: str, source_id: str, limit: int, cl: Any) -> dict[str, Any]:
     scan_rows = _supabase_request(
         "POST",
@@ -112,17 +100,18 @@ async def echo_scan_enabled(
         },
     ) or []
 
-    sessionid = os.getenv("INSTAGRAM_SESSION_ID", "").strip()
-    if not sessionid:
-        return {
-            "status": "skipped",
-            "reason": "instagram_session_not_configured",
-            "enabled_sources": len(sources),
-        }
     if not sources:
         return {"status": "success", "enabled_sources": 0, "results": []}
 
-    cl = await _get_client(sessionid, clients)
+    try:
+        cl = await clients.latest()
+    except Exception:
+        return {
+            "status": "skipped",
+            "reason": "instagram_login_not_configured",
+            "enabled_sources": len(sources),
+        }
+
     results = []
     for source in sources:
         results.append(await _scan_one(source["username"], source["id"], limit, cl))
