@@ -32,16 +32,18 @@ def _normalize_media(media: Any, fallback_username: str) -> dict[str, Any]:
     taken_at = getattr(media, "taken_at", None)
     author = getattr(media, "user", None)
     username = getattr(author, "username", None) or fallback_username
+    product_type = _as_string(getattr(media, "product_type", None))
+    permalink_type = "reel" if (product_type or "").lower() in {"clips", "reels", "reel"} else "p"
 
     return {
         "instagram_id": _as_string(getattr(media, "pk", None)),
         "code": code,
-        "permalink": f"https://www.instagram.com/p/{code}/" if code else None,
+        "permalink": f"https://www.instagram.com/{permalink_type}/{code}/" if code else None,
         "username": username,
         "caption": getattr(media, "caption_text", "") or "",
         "published_at": taken_at.isoformat() if hasattr(taken_at, "isoformat") else _as_string(taken_at),
         "media_type": getattr(media, "media_type", None),
-        "product_type": getattr(media, "product_type", None),
+        "product_type": product_type,
         "thumbnail_url": _as_string(getattr(media, "thumbnail_url", None)),
         "video_url": _as_string(getattr(media, "video_url", None)),
         "like_count": getattr(media, "like_count", None),
@@ -392,7 +394,7 @@ async def echo_scan(
             "scan_runs",
             params={"id": f"eq.{scan_id}"},
             payload={
-                "status": "failed",
+                "status": "error",
                 "finished_at": datetime.now(timezone.utc).isoformat(),
                 "error_message": str(exc)[:500],
             },
