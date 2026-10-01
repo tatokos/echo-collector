@@ -1,13 +1,15 @@
-import os
+from fastapi import APIRouter, Depends
 
-from fastapi import APIRouter
+from aiograpi_rest.dependencies import ClientStorage, get_clients
 
 router = APIRouter(prefix="/echo/instagram", tags=["Echo"])
 
 
 @router.get("/status")
-async def instagram_status() -> dict[str, object]:
-    configured = bool(os.getenv("INSTAGRAM_SESSION_ID", "").strip())
+async def instagram_status(
+    clients: ClientStorage = Depends(get_clients),
+) -> dict[str, object]:
+    configured = clients.has_login()
     return {
         "configured": configured,
         "status": "connected" if configured else "disconnected",
