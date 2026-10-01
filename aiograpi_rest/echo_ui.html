@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Echo</title>
+  <style>
+    :root{color-scheme:dark;--bg:#07111f;--panel:rgba(13,27,45,.72);--panel2:rgba(20,39,63,.58);--line:rgba(255,255,255,.08);--txt:#eef5ff;--muted:#92a6bd;--accent:#55b8ff;--good:#40d68a;--mid:#f2c94c;--low:#ff9f43;--bad:#7f8c9d}
+    *{box-sizing:border-box} body{margin:0;font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(circle at 15% 10%,rgba(44,115,190,.18),transparent 34%),radial-gradient(circle at 85% 12%,rgba(56,189,248,.12),transparent 28%),linear-gradient(180deg,#07111f,#091827 58%,#07111f);color:var(--txt);min-height:100vh}
+    .shell{max-width:1180px;margin:auto;padding:28px 22px 64px}.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}.brand{display:flex;align-items:center;gap:12px}.orb{width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#d7f1ff 0 8%,#56bfff 25%,#245bff 68%,#18305d 100%);box-shadow:0 0 30px rgba(65,165,255,.32)}h1{font-size:22px;margin:0;letter-spacing:-.03em}.sub{color:var(--muted);font-size:12px;margin-top:2px}.pill,.btn,.input{border:1px solid var(--line);background:rgba(255,255,255,.05);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}.pill{padding:8px 11px;border-radius:999px;color:#b9c8d8}.status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--good);margin-right:7px;box-shadow:0 0 12px rgba(64,214,138,.65)}
+    .grid{display:grid;grid-template-columns:1fr 310px;gap:18px}.glass{border:1px solid var(--line);background:linear-gradient(180deg,rgba(20,40,64,.66),rgba(9,24,40,.66));box-shadow:0 18px 50px rgba(0,0,0,.24);backdrop-filter:blur(24px);border-radius:22px}.feed-head{display:flex;align-items:center;justify-content:space-between;padding:18px 18px 14px}.feed-head h2,.settings h2{margin:0;font-size:16px}.filters{display:flex;gap:7px;flex-wrap:wrap}.btn{color:#c8d8e8;padding:8px 11px;border-radius:11px;cursor:pointer}.btn:hover{background:rgba(255,255,255,.09)}.btn.active{background:rgba(85,184,255,.15);border-color:rgba(85,184,255,.28);color:#e7f6ff}.feed{padding:0 10px 10px}.empty{margin:24px 8px;padding:48px 22px;text-align:center;border:1px dashed rgba(255,255,255,.1);border-radius:17px;color:var(--muted)}.post{display:grid;grid-template-columns:88px 1fr auto;gap:14px;align-items:start;padding:14px;margin:7px 0;border:1px solid transparent;border-radius:17px;background:rgba(255,255,255,.025);transition:.15s}.post:hover{border-color:var(--line);background:rgba(255,255,255,.045)}.thumb{width:88px;height:88px;border-radius:13px;object-fit:cover;background:#102034}.user{font-weight:680}.meta{color:var(--muted);font-size:12px;margin-top:3px}.caption{color:#d7e3ef;margin-top:8px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.score{min-width:76px;text-align:right}.tag{display:inline-flex;padding:5px 8px;border-radius:999px;font-size:11px;font-weight:750;letter-spacing:.04em}.ALTA{background:rgba(64,214,138,.13);color:#7ee8b3}.MEDIA{background:rgba(242,201,76,.13);color:#f8da78}.BASSA{background:rgba(255,159,67,.13);color:#ffc17f}.SCARTATA{background:rgba(127,140,157,.12);color:#aeb8c3}.num{margin-top:7px;color:#9eb3c8;font-size:12px}.settings{padding:18px;position:sticky;top:20px;height:max-content}.section{padding-top:16px;margin-top:16px;border-top:1px solid var(--line)}.label{display:block;color:#94a9bf;font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px}.input{width:100%;border-radius:12px;padding:10px 11px;color:#eef5ff;outline:none}.input:focus{border-color:rgba(85,184,255,.35)}.row{display:flex;gap:7px}.row .input{min-width:0}.primary{background:linear-gradient(180deg,rgba(85,184,255,.22),rgba(52,126,219,.16));border-color:rgba(85,184,255,.3);color:white}.items{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.chip{display:inline-flex;align-items:center;gap:7px;padding:7px 9px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.035);color:#c8d5e3;font-size:12px}.x{border:0;background:none;color:#73879b;cursor:pointer;padding:0}.locked{font-size:12px;color:var(--muted);margin-top:9px}.note{font-size:12px;color:#8398ae;margin-top:10px}.toast{position:fixed;right:20px;bottom:20px;padding:11px 14px;border:1px solid var(--line);border-radius:13px;background:rgba(9,23,38,.92);box-shadow:0 16px 44px rgba(0,0,0,.35);opacity:0;transform:translateY(8px);transition:.18s;pointer-events:none}.toast.show{opacity:1;transform:translateY(0)}a{color:inherit;text-decoration:none}@media(max-width:860px){.grid{grid-template-columns:1fr}.settings{position:static}.post{grid-template-columns:72px 1fr}.thumb{width:72px;height:72px}.score{grid-column:2;text-align:left}.top{align-items:flex-start;gap:12px}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="top">
+      <div class="brand"><div class="orb"></div><div><h1>Echo</h1><div class="sub">Quiet social monitoring</div></div></div>
+      <div class="pill"><span class="status-dot"></span><span id="statusText">Connected</span></div>
+    </header>
+    <div class="grid">
+      <section class="glass">
+        <div class="feed-head"><h2>Signals</h2><div class="filters" id="filters"></div></div>
+        <div class="feed" id="feed"><div class="empty">No signals yet. Add sources and keywords, then Echo will populate this feed after scans begin.</div></div>
+      </section>
+      <aside class="glass settings">
+        <h2>Monitoring</h2>
+        <div class="section">
+          <label class="label">Sources</label>
+          <div class="row"><input class="input" id="sourceInput" placeholder="instagram username" /><button class="btn primary" onclick="addSource()">Add</button></div>
+          <div class="items" id="sources"></div>
+        </div>
+        <div class="section">
+          <label class="label">Keywords</label>
+          <div class="row"><input class="input" id="keywordInput" placeholder="keyword" /><input class="input" id="weightInput" type="number" min="0" max="100" value="25" style="max-width:72px"/><button class="btn primary" onclick="addKeyword()">Add</button></div>
+          <div class="items" id="keywords"></div>
+          <div class="note">Weight contributes directly to the 0–100 relevance score.</div>
+        </div>
+        <div class="section">
+          <label class="label">Configuration access</label>
+          <input class="input" id="adminKey" type="password" placeholder="Echo admin key" autocomplete="off" />
+          <div class="locked">The key is kept only in this browser tab and is sent only when changing sources or keywords.</div>
+        </div>
+      </aside>
+    </div>
+  </main>
+  <div class="toast" id="toast"></div>
+<script>
+let currentFilter='ALL';
+const levels=['ALL','ALTA','MEDIA','BASSA','SCARTATA'];
+const filters=document.getElementById('filters');
+levels.forEach(l=>{const b=document.createElement('button');b.className='btn'+(l==='ALL'?' active':'');b.textContent=l==='ALL'?'All':l;b.onclick=()=>{currentFilter=l;document.querySelectorAll('#filters .btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');loadFeed()};filters.appendChild(b)});
+const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2200)}
+function adminHeaders(){const k=document.getElementById('adminKey').value.trim();return k?{'X-Echo-Admin-Key':k,'Content-Type':'application/json'}:{'Content-Type':'application/json'}}
+async function api(path,opts={}){const r=await fetch(path,opts);if(!r.ok){let m='Request failed';try{const j=await r.json();m=j.detail||m}catch{}throw new Error(m)}return r.status===204?null:r.json()}
+async function loadFeed(){try{const q=currentFilter==='ALL'?'':'?relevance='+currentFilter;const d=await api('/echo/feed'+q);const el=document.getElementById('feed');if(!d.items.length){el.innerHTML='<div class="empty">No signals yet. Add sources and keywords, then Echo will populate this feed after scans begin.</div>';return}el.innerHTML=d.items.map(p=>`<a class="post" href="${esc(p.permalink||'#')}" target="_blank" rel="noopener"><img class="thumb" src="${esc(p.thumbnail_url||'')}" onerror="this.style.opacity=.12"/><div><div class="user">@${esc(p.username)}</div><div class="meta">${p.published_at?new Date(p.published_at).toLocaleString():''}</div><div class="caption">${esc(p.caption||'')}</div></div><div class="score"><span class="tag ${esc(p.relevance)}">${esc(p.relevance)}</span><div class="num">${Number(p.relevance_score||0)}/100</div></div></a>`).join('')}catch(e){document.getElementById('statusText').textContent='Unavailable';toast(e.message)}}
+async function loadSources(){try{const d=await api('/echo/sources');document.getElementById('sources').innerHTML=d.items.map(s=>`<span class="chip">@${esc(s.username)}<button class="x" onclick="removeSource('${s.id}')">×</button></span>`).join('')}catch(e){toast(e.message)}}
+async function loadKeywords(){try{const d=await api('/echo/keywords');document.getElementById('keywords').innerHTML=d.items.map(k=>`<span class="chip">${esc(k.keyword)} · ${k.weight}<button class="x" onclick="removeKeyword('${k.id}')">×</button></span>`).join('')}catch(e){toast(e.message)}}
+async function addSource(){const username=document.getElementById('sourceInput').value.trim();if(!username)return;try{await api('/echo/sources',{method:'POST',headers:adminHeaders(),body:JSON.stringify({username})});document.getElementById('sourceInput').value='';await loadSources();toast('Source added')}catch(e){toast(e.message)}}
+async function removeSource(id){try{await api('/echo/sources/'+id,{method:'DELETE',headers:adminHeaders()});await loadSources();toast('Source removed')}catch(e){toast(e.message)}}
+async function addKeyword(){const keyword=document.getElementById('keywordInput').value.trim();const weight=Number(document.getElementById('weightInput').value||25);if(!keyword)return;try{await api('/echo/keywords',{method:'POST',headers:adminHeaders(),body:JSON.stringify({keyword,weight})});document.getElementById('keywordInput').value='';await loadKeywords();toast('Keyword added')}catch(e){toast(e.message)}}
+async function removeKeyword(id){try{await api('/echo/keywords/'+id,{method:'DELETE',headers:adminHeaders()});await loadKeywords();toast('Keyword removed')}catch(e){toast(e.message)}}
+loadFeed();loadSources();loadKeywords();setInterval(loadFeed,60000);
+</script>
+</body>
+</html>
