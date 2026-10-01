@@ -11,34 +11,72 @@ _STOPWORDS = {
     "that", "the", "to", "with", "without",
 }
 
-# Tiny built-in concept map: zero dependencies, zero external APIs.
+_PHRASE_ALIASES = {
+    "salire a bordo": " imbarco ",
+    "salita a bordo": " imbarco ",
+    "sbarcare a bordo": " imbarco ",
+    "check in": " checkin ",
+    "long wait": " attesa ",
+    "waiting time": " attesa ",
+}
+
+# Small built-in concept map: zero dependencies and zero external APIs.
 _CONCEPT_GROUPS = [
-    {"problema", "problemi", "disservizio", "disservizi", "issue", "issues", "problem", "problems", "guasto", "guasti", "malfunzionamento", "malfunzionamenti"},
-    {"ritardo", "ritardi", "delay", "delays", "late", "attesa", "attese", "waiting", "wait"},
-    {"coda", "code", "fila", "file", "queue", "queues", "crowd", "affollamento", "affollato"},
-    {"lamentela", "lamentele", "reclamo", "reclami", "complaint", "complaints", "deluso", "delusa", "delusione", "disappointed"},
-    {"pessimo", "pessima", "terribile", "orribile", "bad", "awful", "terrible", "worst", "scadente"},
-    {"ottimo", "ottima", "eccellente", "fantastico", "fantastica", "great", "excellent", "amazing", "fantastic", "positivo", "positiva"},
-    {"prezzo", "prezzi", "costoso", "costosa", "caro", "cara", "price", "prices", "expensive", "cost"},
+    {"problema", "disservizio", "issue", "problem", "guasto", "malfunzionamento"},
+    {"ritardo", "delay", "late", "attesa", "waiting", "wait", "coda", "fila", "queue", "crowd", "affollamento"},
+    {"frustr", "lamentela", "reclamo", "complaint", "deluso", "delusione", "disappointed"},
+    {"pessimo", "terribile", "orribile", "bad", "awful", "terrible", "worst", "scadente"},
+    {"ottimo", "eccellente", "fantastico", "great", "excellent", "amazing", "fantastic", "positivo"},
+    {"prezzo", "costoso", "caro", "price", "expensive", "cost"},
     {"sicurezza", "pericolo", "pericoloso", "rischio", "safety", "danger", "dangerous", "risk"},
-    {"sporco", "sporca", "sporcizia", "pulizia", "dirty", "cleanliness", "clean", "igiene", "hygiene"},
-    {"personale", "staff", "servizio", "service", "assistenza", "support", "operatore", "operatori"},
-    {"cibo", "food", "ristorante", "restaurant", "pasto", "pasti", "meal", "meals"},
-    {"bagaglio", "bagagli", "valigia", "valigie", "luggage", "baggage", "suitcase"},
-    {"imbarco", "boarding", "checkin", "check-in", "accesso", "entrata", "entry"},
-    {"cancellato", "cancellata", "cancellazione", "cancelled", "canceled", "cancellation"},
+    {"sporco", "sporcizia", "pulizia", "dirty", "cleanliness", "clean", "igiene", "hygiene"},
+    {"personale", "staff", "servizio", "service", "assistenza", "support", "operatore"},
+    {"cibo", "food", "ristorante", "restaurant", "pasto", "meal"},
+    {"bagaglio", "valigia", "luggage", "baggage", "suitcase"},
+    {"imbarco", "boarding", "checkin", "accesso", "entrata", "entry"},
+    {"cancellato", "cancellazione", "cancelled", "canceled", "cancellation"},
 ]
+
+
+def _canonical_token(token: str) -> str:
+    rules = (
+        (("frustr",), "frustr"),
+        (("problem", "problemi"), "problema"),
+        (("disserv",), "disservizio"),
+        (("ritard",), "ritardo"),
+        (("attes", "attend"), "attesa"),
+        (("imbarc",), "imbarco"),
+        (("viaggi",), "viaggio"),
+        (("lament",), "lamentela"),
+        (("reclam",), "reclamo"),
+        (("cancell",), "cancellazione"),
+        (("affoll",), "affollamento"),
+        (("pessim",), "pessimo"),
+        (("ottim",), "ottimo"),
+    )
+    for prefixes, canonical in rules:
+        if token.startswith(prefixes):
+            return canonical
+    if len(token) > 5 and token.endswith("s"):
+        return token[:-1]
+    return token
 
 
 def _normalize(text: str) -> str:
     text = unicodedata.normalize("NFKD", text.lower())
     text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    for phrase, replacement in _PHRASE_ALIASES.items():
+        text = text.replace(phrase, replacement)
     text = text.replace("-", " ")
     return re.sub(r"[^a-z0-9à-ÿ]+", " ", text).strip()
 
 
 def _tokens(text: str) -> list[str]:
-    return [token for token in _normalize(text).split() if len(token) >= 3 and token not in _STOPWORDS]
+    return [
+        _canonical_token(token)
+        for token in _normalize(text).split()
+        if len(token) >= 3 and token not in _STOPWORDS
+    ]
 
 
 def _expand(tokens: set[str]) -> set[str]:
@@ -73,9 +111,12 @@ def score_objectives(text: str, objectives: list[dict[str, Any]]) -> dict[str, A
         if not objective_tokens:
             continue
 
-        expanded_objective = _expand(objective_tokens)
         direct_hits = objective_tokens & post_tokens
-        concept_hits = objective_tokens & post_expanded
+        concept_hits = {
+            token
+            for token in objective_tokens
+            if _expand({token}) & post_expanded
+        }
 
         fuzzy_hits = []
         for token in objective_tokens - concept_hits:
@@ -83,12 +124,13 @@ def score_objectives(text: str, objectives: list[dict[str, Any]]) -> dict[str, A
             if ratio >= 0.86:
                 fuzzy_hits.append(token)
 
-        coverage = (len(concept_hits) + 0.65 * len(fuzzy_hits)) / max(len(objective_tokens), 1)
+        matched_weight = len(concept_hits) + 0.65 * len(fuzzy_hits)
+        coverage = matched_weight / max(len(objective_tokens), 1)
         direct_bonus = min(len(direct_hits) * 8, 24)
         phrase_similarity = SequenceMatcher(None, _normalize(objective), _normalize(text)).ratio()
-        phrase_bonus = max(0, round((phrase_similarity - 0.25) * 28))
+        phrase_bonus = max(0, round((phrase_similarity - 0.22) * 24))
 
-        raw_score = round(coverage * 72 + direct_bonus + phrase_bonus)
+        raw_score = round(coverage * 78 + direct_bonus + phrase_bonus)
         priority = max(0, min(100, int(item.get("priority", 50))))
         priority_factor = 0.85 + (priority / 100) * 0.15
         score = max(0, min(100, round(raw_score * priority_factor)))
