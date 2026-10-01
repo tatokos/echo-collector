@@ -24,6 +24,14 @@ def _require_automation(key: str | None) -> None:
         raise HTTPException(status_code=401, detail="Invalid Echo automation key")
 
 
+def _load_instagram_session() -> str:
+    sessionid = os.getenv("INSTAGRAM_SESSION_ID", "").strip()
+    if sessionid:
+        return sessionid
+    value = _supabase_request("POST", "rpc/echo_get_instagram_session", payload={})
+    return value.strip() if isinstance(value, str) else ""
+
+
 async def _get_client(sessionid: str, clients: ClientStorage):
     try:
         return await clients.get(sessionid)
@@ -112,7 +120,7 @@ async def echo_scan_enabled(
         },
     ) or []
 
-    sessionid = os.getenv("INSTAGRAM_SESSION_ID", "").strip()
+    sessionid = _load_instagram_session()
     if not sessionid:
         return {
             "status": "skipped",
