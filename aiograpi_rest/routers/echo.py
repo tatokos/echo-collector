@@ -64,7 +64,6 @@ def _supabase_headers() -> dict[str, str]:
         raise HTTPException(status_code=503, detail="Echo database integration is not configured")
     return {
         "apikey": publishable_key,
-        "Authorization": f"Bearer {publishable_key}",
         "Content-Type": "application/json",
         "x-echo-key": ingest_key,
     }
