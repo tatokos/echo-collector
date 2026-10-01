@@ -30,14 +30,7 @@ class ClientStorage:
             return getattr(private, "proxy", None)
         return getattr(cl, "proxy", None)
 
-    async def get(self, sessionid: str) -> Client:
-        """Get client settings
-        """
-        key = self._clean_sessionid(sessionid)
-        rows = self.db.search(Query().sessionid == key)
-        if not rows:
-            raise Exception('Session not found (e.g. after reload process), please relogin')
-        row = rows[0]
+    async def _client_from_row(self, row) -> Client:
         settings = json.loads(row['settings'])
         cl = self.client_factory()
         cl.set_settings(settings)
@@ -45,6 +38,25 @@ class ClientStorage:
             cl.set_proxy(row["proxy"])
         await cl.get_timeline_feed()
         return cl
+
+    async def get(self, sessionid: str) -> Client:
+        """Get client settings
+        """
+        key = self._clean_sessionid(sessionid)
+        rows = self.db.search(Query().sessionid == key)
+        if not rows:
+            raise Exception('Session not found (e.g. after reload process), please relogin')
+        return await self._client_from_row(rows[0])
+
+    async def latest(self) -> Client:
+        """Return the most recently stored authenticated client."""
+        rows = self.db.all()
+        if not rows:
+            raise Exception('No Instagram login is stored')
+        return await self._client_from_row(rows[-1])
+
+    def has_login(self) -> bool:
+        return bool(self.db.all())
 
     def set(self, cl: Client) -> bool:
         """Set client settings
