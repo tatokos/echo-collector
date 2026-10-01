@@ -3,9 +3,10 @@ from pathlib import Path
 from fastapi.responses import FileResponse
 
 from aiograpi_rest.main import app
-from aiograpi_rest.routers import echo
+from aiograpi_rest.routers import echo, echo_scheduler
 
 app.include_router(echo.router)
+app.include_router(echo_scheduler.router)
 
 
 @app.get("/echo/app", include_in_schema=False)
