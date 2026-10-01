@@ -3,12 +3,13 @@ from pathlib import Path
 from fastapi.responses import FileResponse
 
 from aiograpi_rest.main import app
-from aiograpi_rest.routers import echo, echo_lightweight, echo_objectives, echo_scheduler
+from aiograpi_rest.routers import echo, echo_instagram_status, echo_lightweight, echo_objectives, echo_scheduler
 
 app.include_router(echo.router)
 app.include_router(echo_objectives.router)
 app.include_router(echo_scheduler.router)
 app.include_router(echo_lightweight.router)
+app.include_router(echo_instagram_status.router)
 
 
 @app.get("/echo/app", include_in_schema=False)
