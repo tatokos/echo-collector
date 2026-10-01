@@ -41,6 +41,21 @@ def score_text(text: str, username: str, keywords: list[dict[str, Any]], objecti
     }
 
 
+def _existing_instagram_ids(posts: list[dict[str, Any]]) -> set[str]:
+    ids = sorted({str(post.get("instagram_id", "")).strip() for post in posts if post.get("instagram_id")})
+    if not ids:
+        return set()
+    rows = _supabase_request(
+        "GET",
+        "posts",
+        params={
+            "select": "instagram_id",
+            "instagram_id": f"in.({','.join(ids)})",
+        },
+    ) or []
+    return {str(row.get("instagram_id")) for row in rows if row.get("instagram_id")}
+
+
 def upsert_posts_lightweight(
     source_id: str,
     posts: list[dict[str, Any]],
@@ -48,6 +63,10 @@ def upsert_posts_lightweight(
 ) -> int:
     if not posts:
         return 0
+
+    existing_ids = _existing_instagram_ids(posts)
+    incoming_ids = {str(post.get("instagram_id")) for post in posts if post.get("instagram_id")}
+    genuinely_new = len(incoming_ids - existing_ids)
 
     objectives = load_objectives()
     rows: list[dict[str, Any]] = []
@@ -65,11 +84,11 @@ def upsert_posts_lightweight(
             }
         )
 
-    stored = _supabase_request(
+    _supabase_request(
         "POST",
         "posts",
         params={"on_conflict": "instagram_id"},
         payload=rows,
-        prefer="resolution=merge-duplicates,return=representation",
+        prefer="resolution=merge-duplicates,return=minimal",
     )
-    return len(stored or [])
+    return genuinely_new
