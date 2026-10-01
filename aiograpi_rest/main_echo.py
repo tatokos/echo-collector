@@ -21,7 +21,8 @@ _NO_CACHE = {
 @app.get("/echo/app", include_in_schema=False)
 async def echo_app() -> HTMLResponse:
     html = Path(__file__).with_name("echo_ui.html").read_text(encoding="utf-8")
-    html = html.replace("</body>", '<script src="/echo/instagram-ui.js"></script></body>')
+    scripts = '<script src="/echo/instagram-ui.js"></script><script src="/echo/pretest-ui.js"></script>'
+    html = html.replace("</body>", f"{scripts}</body>")
     return HTMLResponse(html, headers=_NO_CACHE)
 
 
@@ -29,6 +30,15 @@ async def echo_app() -> HTMLResponse:
 async def echo_instagram_ui() -> FileResponse:
     return FileResponse(
         Path(__file__).with_name("echo_instagram_ui.js"),
+        media_type="application/javascript",
+        headers=_NO_CACHE,
+    )
+
+
+@app.get("/echo/pretest-ui.js", include_in_schema=False)
+async def echo_pretest_ui() -> FileResponse:
+    return FileResponse(
+        Path(__file__).with_name("echo_pretest_ui.js"),
         media_type="application/javascript",
         headers=_NO_CACHE,
     )

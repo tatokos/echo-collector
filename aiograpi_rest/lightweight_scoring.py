@@ -41,19 +41,23 @@ def score_text(text: str, username: str, keywords: list[dict[str, Any]], objecti
     }
 
 
-def _existing_instagram_ids(posts: list[dict[str, Any]]) -> set[str]:
+def _existing_posts(posts: list[dict[str, Any]]) -> dict[str, str]:
     ids = sorted({str(post.get("instagram_id", "")).strip() for post in posts if post.get("instagram_id")})
     if not ids:
-        return set()
+        return {}
     rows = _supabase_request(
         "GET",
         "posts",
         params={
-            "select": "instagram_id",
+            "select": "instagram_id,status",
             "instagram_id": f"in.({','.join(ids)})",
         },
     ) or []
-    return {str(row.get("instagram_id")) for row in rows if row.get("instagram_id")}
+    return {
+        str(row.get("instagram_id")): str(row.get("status") or "new")
+        for row in rows
+        if row.get("instagram_id")
+    }
 
 
 def upsert_posts_lightweight(
@@ -64,13 +68,14 @@ def upsert_posts_lightweight(
     if not posts:
         return 0
 
-    existing_ids = _existing_instagram_ids(posts)
+    existing = _existing_posts(posts)
     incoming_ids = {str(post.get("instagram_id")) for post in posts if post.get("instagram_id")}
-    genuinely_new = len(incoming_ids - existing_ids)
+    genuinely_new = len(incoming_ids - set(existing))
 
     objectives = load_objectives()
     rows: list[dict[str, Any]] = []
     for post in posts:
+        instagram_id = str(post.get("instagram_id") or "")
         result = score_text(post.get("caption", ""), post.get("username", ""), keywords, objectives)
         rows.append(
             {
@@ -79,7 +84,7 @@ def upsert_posts_lightweight(
                 "relevance_score": result["final_score"],
                 "relevance": result["relevance"],
                 "reason": result["reason"],
-                "status": "new",
+                "status": existing.get(instagram_id, "new"),
                 "updated_at": datetime.now(timezone.utc).isoformat(),
             }
         )
