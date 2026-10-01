@@ -13,4 +13,11 @@ app.include_router(echo_lightweight.router)
 
 @app.get("/echo/app", include_in_schema=False)
 async def echo_app() -> FileResponse:
-    return FileResponse(Path(__file__).with_name("echo_ui.html"))
+    return FileResponse(
+        Path(__file__).with_name("echo_ui.html"),
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
