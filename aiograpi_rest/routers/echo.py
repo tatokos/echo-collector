@@ -1,13 +1,24 @@
 import os
+import secrets
 from datetime import datetime, timezone
 from typing import Any
 
 import requests
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from pydantic import BaseModel, Field
 
 from aiograpi_rest.dependencies import ClientStorage, get_clients, get_sessionid
 
 router = APIRouter(prefix="/echo", tags=["Echo"])
+
+
+class SourceInput(BaseModel):
+    username: str = Field(min_length=1, max_length=100)
+
+
+class KeywordInput(BaseModel):
+    keyword: str = Field(min_length=1, max_length=120)
+    weight: int = Field(default=25, ge=0, le=100)
 
 
 def _as_string(value: Any) -> str | None:
@@ -36,6 +47,14 @@ def _normalize_media(media: Any, fallback_username: str) -> dict[str, Any]:
         "like_count": getattr(media, "like_count", None),
         "comment_count": getattr(media, "comment_count", None),
     }
+
+
+def _require_admin(admin_key: str | None) -> None:
+    expected = os.getenv("ECHO_ADMIN_KEY", "")
+    if not expected:
+        raise HTTPException(status_code=503, detail="Echo configuration access is not enabled")
+    if not admin_key or not secrets.compare_digest(admin_key, expected):
+        raise HTTPException(status_code=401, detail="Invalid Echo admin key")
 
 
 def _supabase_headers() -> dict[str, str]:
@@ -165,6 +184,130 @@ def _upsert_posts(source_id: str, posts: list[dict[str, Any]], keywords: list[di
 @router.get("/health")
 async def echo_health() -> dict[str, str]:
     return {"service": "echo-collector", "status": "ok"}
+
+
+@router.get("/feed")
+async def echo_feed(
+    limit: int = Query(40, ge=1, le=100),
+    relevance: str | None = Query(None),
+) -> dict[str, Any]:
+    params = {
+        "select": "id,instagram_id,code,permalink,username,caption,thumbnail_url,video_url,published_at,media_type,product_type,like_count,comment_count,relevance_score,relevance,reason,status,created_at",
+        "order": "published_at.desc.nullslast,created_at.desc",
+        "limit": str(limit),
+    }
+    if relevance and relevance.upper() in {"ALTA", "MEDIA", "BASSA", "SCARTATA"}:
+        params["relevance"] = f"eq.{relevance.upper()}"
+    rows = _supabase_request("GET", "posts", params=params) or []
+    return {"count": len(rows), "items": rows}
+
+
+@router.get("/sources")
+async def echo_sources() -> dict[str, Any]:
+    rows = _supabase_request(
+        "GET",
+        "sources",
+        params={
+            "select": "id,platform,username,enabled,last_scanned_at,created_at",
+            "order": "username.asc",
+        },
+    ) or []
+    return {"count": len(rows), "items": rows}
+
+
+@router.post("/sources")
+async def echo_add_source(
+    source: SourceInput,
+    x_echo_admin_key: str | None = Header(None, alias="X-Echo-Admin-Key"),
+) -> dict[str, Any]:
+    _require_admin(x_echo_admin_key)
+    username = source.username.strip().lstrip("@").lower()
+    if not username:
+        raise HTTPException(status_code=422, detail="Instagram username is required")
+    return _upsert_source(username)
+
+
+@router.delete("/sources/{source_id}")
+async def echo_delete_source(
+    source_id: str,
+    x_echo_admin_key: str | None = Header(None, alias="X-Echo-Admin-Key"),
+) -> dict[str, str]:
+    _require_admin(x_echo_admin_key)
+    _supabase_request(
+        "DELETE",
+        "sources",
+        params={"id": f"eq.{source_id}"},
+        prefer="return=minimal",
+    )
+    return {"status": "deleted"}
+
+
+@router.get("/keywords")
+async def echo_keywords() -> dict[str, Any]:
+    rows = _supabase_request(
+        "GET",
+        "keywords",
+        params={
+            "select": "id,keyword,weight,enabled,created_at",
+            "order": "keyword.asc",
+        },
+    ) or []
+    return {"count": len(rows), "items": rows}
+
+
+@router.post("/keywords")
+async def echo_add_keyword(
+    item: KeywordInput,
+    x_echo_admin_key: str | None = Header(None, alias="X-Echo-Admin-Key"),
+) -> dict[str, Any]:
+    _require_admin(x_echo_admin_key)
+    keyword = item.keyword.strip()
+    if not keyword:
+        raise HTTPException(status_code=422, detail="Keyword is required")
+
+    existing = _supabase_request(
+        "GET",
+        "keywords",
+        params={
+            "select": "id,keyword,weight,enabled,created_at",
+            "keyword": f"ilike.{keyword}",
+            "limit": "1",
+        },
+    ) or []
+    if existing:
+        rows = _supabase_request(
+            "PATCH",
+            "keywords",
+            params={"id": f"eq.{existing[0]['id']}"},
+            payload={"weight": item.weight, "enabled": True},
+            prefer="return=representation",
+        ) or []
+        return rows[0] if rows else existing[0]
+
+    rows = _supabase_request(
+        "POST",
+        "keywords",
+        payload={"keyword": keyword, "weight": item.weight, "enabled": True},
+        prefer="return=representation",
+    ) or []
+    if not rows:
+        raise HTTPException(status_code=502, detail="Could not save keyword")
+    return rows[0]
+
+
+@router.delete("/keywords/{keyword_id}")
+async def echo_delete_keyword(
+    keyword_id: str,
+    x_echo_admin_key: str | None = Header(None, alias="X-Echo-Admin-Key"),
+) -> dict[str, str]:
+    _require_admin(x_echo_admin_key)
+    _supabase_request(
+        "DELETE",
+        "keywords",
+        params={"id": f"eq.{keyword_id}"},
+        prefer="return=minimal",
+    )
+    return {"status": "deleted"}
 
 
 @router.get("/preview")
